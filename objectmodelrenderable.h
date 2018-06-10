@@ -51,25 +51,31 @@
 #ifndef LOGO_H
 #define LOGO_H
 
+#include <assimp/mesh.h>
+#include <assimp/scene.h>
+
 #include <qopengl.h>
 #include <QVector>
 #include <QVector3D>
+#include <QString>
 
-class Logo
+class ObjectModelRenerable
 {
 public:
-    Logo();
-    const GLfloat *constData() const { return m_data.constData(); }
-    int count() const { return m_count; }
-    int vertexCount() const { return m_count / 6; }
+    ObjectModelRenerable(const QString &objectModel);
+    QVector<GLfloat> getVertices() { return m_vertices; }
+    QVector<GLfloat> getNormals() { return m_normals; }
+    QVector<GLuint> getIndices() { return m_indices; }
+    int verticesCount() const { return m_vertices.size(); }
+    int normalsCount() const { return m_normals.size(); }
+    int indicesCount() const { return m_indices.size(); }
 
 private:
-    void quad(GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2, GLfloat x3, GLfloat y3, GLfloat x4, GLfloat y4);
-    void extrude(GLfloat x1, GLfloat y1, GLfloat x2, GLfloat y2);
-    void add(const QVector3D &v, const QVector3D &n);
+    void processMesh(aiMesh *mesh);
 
-    QVector<GLfloat> m_data;
-    int m_count;
+    QVector<GLfloat> m_vertices;
+    QVector<GLfloat> m_normals;
+    QVector<GLuint> m_indices;
 };
 
 #endif // LOGO_H

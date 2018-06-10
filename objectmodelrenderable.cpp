@@ -48,24 +48,63 @@
 **
 ****************************************************************************/
 
-#include <QtWidgets>
+#include "objectmodelrenderable.h"
+#include <assimp/postprocess.h>
+#include <assimp/Importer.hpp>
+#include <qmath.h>
 
-#include "glwidget.h"
-#include "window.h"
-
-Window::Window()
+ObjectModelRenerable::ObjectModelRenerable(const QString &objectModel)
 {
-
-    glWidget = new GLWidget(this);
-    glWidget->setClearColor(QColor(255, 255, 255, 255));
-    glWidget->setGeometry(QRect(0, 0, 1900, 1900));
-    setWindowTitle(tr("Textures"));
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile(objectModel.toStdString(),
+                                             aiProcess_GenSmoothNormals |
+                                             aiProcess_CalcTangentSpace |
+                                             aiProcess_Triangulate |
+                                             aiProcess_JoinIdenticalVertices |
+                                             aiProcess_SortByPType
+                                             );
+    processMesh(scene->mMeshes[0]);
 }
 
-void Window::setCurrentGlWidget()
+void ObjectModelRenerable::processMesh(aiMesh *mesh)
 {
-}
+    // Get Vertices
+    if (mesh->mNumVertices > 0)
+    {
+        for (uint ii = 0; ii < mesh->mNumVertices; ++ii)
+        {
+            aiVector3D &vec = mesh->mVertices[ii];
 
-void Window::rotateOneStep()
-{
+            m_vertices.push_back(vec.x);
+            m_vertices.push_back(vec.y);
+            m_vertices.push_back(vec.z);
+        }
+    }
+
+    // Get Normals
+    if (mesh->HasNormals())
+    {
+        for (uint ii = 0; ii < mesh->mNumVertices; ++ii)
+        {
+            aiVector3D &vec = mesh->mNormals[ii];
+            m_normals.push_back(vec.x);
+            m_normals.push_back(vec.y);
+            m_normals.push_back(vec.z);
+        };
+    }
+
+    // Get mesh indexes
+    for (uint t = 0; t < mesh->mNumFaces; ++t)
+    {
+        aiFace* face = &mesh->mFaces[t];
+        if (face->mNumIndices != 3)
+        {
+            continue;
+        }
+
+        m_indices.push_back(face->mIndices[0]);
+        m_indices.push_back(face->mIndices[1]);
+        m_indices.push_back(face->mIndices[2]);
+    }
+
 }

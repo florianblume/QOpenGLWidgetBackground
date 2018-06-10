@@ -51,7 +51,7 @@
 #ifndef GLWIDGET_H
 #define GLWIDGET_H
 
-#include "logo.h"
+#include "objectmodelrenderable.h"
 
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions>
@@ -59,7 +59,7 @@
 #include <QOpenGLBuffer>
 #include <QMatrix4x4>
 
-QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram);
+QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
 QT_FORWARD_DECLARE_CLASS(QOpenGLTexture)
 
 class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions
@@ -112,9 +112,11 @@ private:
     QVector<GLfloat> backgroundVertexData;
     QMatrix4x4 orthoMatrix;
 
-    Logo m_logo;
+    ObjectModelRenerable objectModel = ObjectModelRenerable("/home/floretti/Documents/resources/tless/models_cad/obj_01.ply");
     QOpenGLVertexArrayObject m_objectVao;
-    QOpenGLBuffer m_logoVbo;
+    QOpenGLBuffer m_objectModelVertexVbo;
+    QOpenGLBuffer m_objectModelNormalVbo;
+    QOpenGLBuffer m_objectModelIndexVbo;
     QOpenGLShaderProgram *m_objectsProgram;
     int m_projMatrixLoc;
     int m_mvMatrixLoc;

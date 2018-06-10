@@ -1,15 +1,12 @@
 HEADERS       = glwidget.h \
                 window.h \
-                logo.h
+    objectmodelrenderable.h
 SOURCES       = glwidget.cpp \
                 main.cpp \
                 window.cpp \
-                logo.cpp
-
-RESOURCES     = textures.qrc
-
+    objectmodelrenderable.cpp
 QT           += widgets
 
-# install
-target.path = $$[QT_INSTALL_EXAMPLES]/opengl/textures
-INSTALLS += target
+LIBS += -L/usr/local/lib -lassimp
+
+INCLUDEPATH += /usr/local/include/assimp

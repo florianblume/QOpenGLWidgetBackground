@@ -62,7 +62,10 @@ GLWidget::GLWidget(QWidget *parent)
       xRot(0),
       yRot(0),
       zRot(0),
-      backgroundProgram(0)
+      backgroundProgram(0),
+      m_objectModelNormalVbo(QOpenGLBuffer::VertexBuffer),
+      m_objectModelVertexVbo(QOpenGLBuffer::VertexBuffer),
+      m_objectModelIndexVbo(QOpenGLBuffer::IndexBuffer)
 {
 }
 
@@ -240,36 +243,44 @@ void GLWidget::initializeObjectProgram() {
     m_objectsProgram = new QOpenGLShaderProgram;
     m_objectsProgram->addShaderFromSourceCode(QOpenGLShader::Vertex, vertexShaderObjectSource);
     m_objectsProgram->addShaderFromSourceCode(QOpenGLShader::Fragment, fragmentShaderObjectSource);
-    m_objectsProgram->bindAttributeLocation("vertex", 2);
-    m_objectsProgram->bindAttributeLocation("normal", 3);
+    m_objectsProgram->bindAttributeLocation("vertex", 0);
+    m_objectsProgram->bindAttributeLocation("normal", 1);
     m_objectsProgram->link();
 }
 
 void GLWidget::setupObjectVertexBuffer()
 {
-    m_objectsProgram->bind();
     // Create a vertex array object. In OpenGL ES 2.0 and OpenGL 2.x
     // implementations this is optional and support may not be present
     // at all. Nonetheless the below code works in all cases and makes
     // sure there is a VAO when one is needed.
     m_objectVao.create();
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_objectVao);
-
-    // Setup our vertex buffer object.
-    m_logoVbo.create();
-    m_logoVbo.bind();
-    m_logoVbo.allocate(m_logo.constData(), m_logo.count() * sizeof(GLfloat));
-
-    m_logoVbo.bind();
     QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
-    f->glEnable(GL_BLEND);
-    f->glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    f->glEnableVertexAttribArray(2);
-    f->glEnableVertexAttribArray(3);
-    f->glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), 0);
-    f->glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), reinterpret_cast<void *>(3 * sizeof(GLfloat)));
-    m_logoVbo.release();
-    m_objectsProgram->release();
+
+    // Setup the vertex buffer object.
+    m_objectModelVertexVbo.create();
+    m_objectModelVertexVbo.bind();
+    m_objectModelVertexVbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    m_objectModelVertexVbo.allocate(objectModel.getVertices().constData(), objectModel.verticesCount() * sizeof(GLfloat));
+    m_objectModelVertexVbo.bind();
+    f->glEnableVertexAttribArray(0);
+    f->glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+
+    // Setup the normal buffer object.
+    m_objectModelNormalVbo.create();
+    m_objectModelNormalVbo.bind();
+    m_objectModelNormalVbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    m_objectModelNormalVbo.allocate(objectModel.getNormals().constData(), objectModel.normalsCount() * sizeof(GLfloat));
+    m_objectModelNormalVbo.bind();
+    f->glEnableVertexAttribArray(1);
+    f->glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), 0);
+
+    // Setup the index buffer object.
+    m_objectModelIndexVbo.create();
+    m_objectModelIndexVbo.bind();
+    m_objectModelIndexVbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    m_objectModelIndexVbo.allocate(objectModel.getIndices().constData(), objectModel.indicesCount() * sizeof(GLint));
 }
 
 void GLWidget::paintGL()
@@ -292,6 +303,8 @@ void GLWidget::paintGL()
     backgroundProgram->release();
 
     glClear(GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     m_objectsProgram->bind();
     {
@@ -304,7 +317,7 @@ void GLWidget::paintGL()
 
         // Our camera never changes in this example.
         m_camera.setToIdentity();
-        m_camera.translate(0, 0, -1);
+        m_camera.translate(0, 30, -250);
 
         // Light position is fixed.
         m_objectsProgram->setUniformValue(m_lightPosLoc, QVector3D(0, 0, 70));
@@ -319,14 +332,14 @@ void GLWidget::paintGL()
         QMatrix3x3 normalMatrix = m_world.normalMatrix();
         m_objectsProgram->setUniformValue(m_normalMatrixLoc, normalMatrix);
 
-        glDrawArrays(GL_TRIANGLES, 0, m_logo.vertexCount());
+        glDrawElements(GL_TRIANGLES, objectModel.indicesCount(), GL_UNSIGNED_INT, 0);
     }
     m_objectsProgram->release();
 }
 void GLWidget::resizeGL(int width, int height)
 {
     m_proj.setToIdentity();
-    m_proj.perspective(45.0f, GLfloat(width) / height, 0.01f, 100.0f);
+    m_proj.perspective(45.0f, GLfloat(width) / height, 0.01f, 1000.0f);
     glViewport(0, 0, width, height);
 }
 
