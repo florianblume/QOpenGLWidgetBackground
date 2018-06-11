@@ -58,7 +58,7 @@ Window::Window()
 
     glWidget = new GLWidget(this);
     glWidget->setClearColor(QColor(255, 255, 255, 255));
-    glWidget->setGeometry(QRect(0, 0, 1900, 1900));
+    glWidget->setGeometry(QRect(0, 0, 274, 451));
     setWindowTitle(tr("Textures"));
 }
 

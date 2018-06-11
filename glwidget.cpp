@@ -161,13 +161,12 @@ static const char *vertexShaderObjectSource =
         "attribute vec3 normal;\n"
         "varying vec3 vert;\n"
         "varying vec3 vertNormal;\n"
-        "uniform mat4 projMatrix;\n"
-        "uniform mat4 mvMatrix;\n"
+        "uniform mat4 projectionMatrix;\n"
         "uniform mat3 normalMatrix;\n"
         "void main() {\n"
         "   vert = vertex.xyz;\n"
         "   vertNormal = normalMatrix * normal;\n"
-        "   gl_Position = projMatrix * mvMatrix * vertex;\n"
+        "   gl_Position = projectionMatrix * vertex;\n"
         "}\n";
 
 static const char *fragmentShaderObjectSource =
@@ -246,6 +245,42 @@ void GLWidget::initializeObjectProgram() {
     m_objectsProgram->bindAttributeLocation("vertex", 0);
     m_objectsProgram->bindAttributeLocation("normal", 1);
     m_objectsProgram->link();
+
+
+    QMatrix4x4 m_modelMatrix = QMatrix4x4();
+    m_modelMatrix.setToIdentity();
+
+    m_viewMatrix = QMatrix4x4(0.99880781f,    0.04439075f, -0.02027142f,  -2.52484405f,
+                           -0.01520601f, 0.6778174f, 0.73507287f, 22.31654879f,
+                           0.04637038f,  -0.733889f,  0.67768545f,  600.30748785f,
+                           0.f,                             0.f,               0.f,              1.f);
+    QMatrix4x4 yz_flip;
+    yz_flip.setToIdentity();
+    yz_flip(1, 1) = -1;
+    yz_flip(2, 2) = -1;
+    m_viewMatrix = yz_flip * m_viewMatrix;
+    m_viewMatrix = m_viewMatrix.transposed();
+
+    // Our camera never changes in this example.
+    float k00 = 4781.91740099;
+    float k01 = 0.00000000;
+    float k02 = 159.66974846999994;
+    float k11 = 4778.72123643;
+    float k12 = 29.862207509999962;
+    float w = (float) this->width();
+    float h = (float) this->height();
+    float nc = 100.f;
+    float fc = 1000.f;
+    float depth = (float) fc - nc;
+    float q = -(fc + nc) / depth;
+    float qn = -2 * (fc * nc) / depth;
+    m_projectionMatrix = QMatrix4x4(2 * k00 / w, -2 * k01 / w, (-2 * k02 + w) / w, 0,
+                                    0, 2 * k11 / h, (2 * k12 - h) / h, 0,
+                                    0,            0,                  q, qn,
+                                    0,            0,                 -1, 0);
+    m_projectionMatrix = m_projectionMatrix.transposed();
+    m_projectionMatrix = m_modelMatrix * m_viewMatrix * m_projectionMatrix;
+    m_projectionMatrix = m_projectionMatrix.transposed();
 }
 
 void GLWidget::setupObjectVertexBuffer()
@@ -308,28 +343,17 @@ void GLWidget::paintGL()
 
     m_objectsProgram->bind();
     {
-        m_projMatrixLoc = m_objectsProgram->uniformLocation("projMatrix");
-        m_mvMatrixLoc = m_objectsProgram->uniformLocation("mvMatrix");
+        m_projectionMatrixLoc = m_objectsProgram->uniformLocation("projectionMatrix");
         m_normalMatrixLoc = m_objectsProgram->uniformLocation("normalMatrix");
         m_lightPosLoc = m_objectsProgram->uniformLocation("lightPos");
 
         QOpenGLVertexArrayObject::Binder vaoBinder(&m_objectVao);
 
-        // Our camera never changes in this example.
-        m_camera.setToIdentity();
-        m_camera.translate(0, 30, -250);
-
         // Light position is fixed.
         m_objectsProgram->setUniformValue(m_lightPosLoc, QVector3D(0, 0, 70));
 
-        m_world.setToIdentity();
-        m_world.rotate(180.0f - (xRot / 16.0f), 1, 0, 0);
-        m_world.rotate(yRot / 16.0f, 0, 1, 0);
-        m_world.rotate(zRot / 16.0f, 0, 0, 1);
-
-        m_objectsProgram->setUniformValue(m_projMatrixLoc, m_proj);
-        m_objectsProgram->setUniformValue(m_mvMatrixLoc, m_camera * m_world);
-        QMatrix3x3 normalMatrix = m_world.normalMatrix();
+        m_objectsProgram->setUniformValue(m_projectionMatrixLoc, m_projectionMatrix);
+        QMatrix3x3 normalMatrix = m_viewMatrix.normalMatrix();
         m_objectsProgram->setUniformValue(m_normalMatrixLoc, normalMatrix);
 
         glDrawElements(GL_TRIANGLES, objectModel.indicesCount(), GL_UNSIGNED_INT, 0);
@@ -339,7 +363,8 @@ void GLWidget::paintGL()
 void GLWidget::resizeGL(int width, int height)
 {
     m_proj.setToIdentity();
-    m_proj.perspective(45.0f, GLfloat(width) / height, 0.01f, 1000.0f);
+    // We don't allow the user to resize the window
+    //m_proj.perspective(45.0f, GLfloat(width) / height, 0.01f, 1000.0f);
     glViewport(0, 0, width, height);
 }
 
@@ -374,8 +399,7 @@ void GLWidget::makeBackgroundObject()
          { +1, 0, 0 }, { 0, 0, 0 }, { 0, +1, 0 }, { +1, +1, 0 }
     };
 
-    QImage textureImage = QImage(QUrl::fromLocalFile("/home/floretti/Documents/resources"
-                                                     "/tless/train_canon/01/rgb/0000.jpg").path()).mirrored();
+    QImage textureImage = QImage(QUrl::fromLocalFile("/home/floretti/git/flowerpower_nn/data/assets/tless/train_canon/01/generated/images/1002.jpg").path()).mirrored();
     backgroundTexture = new QOpenGLTexture(textureImage);
     backgroundTexture->setMagnificationFilter(QOpenGLTexture::Nearest);
     backgroundTexture->setMinificationFilter(QOpenGLTexture::Nearest);

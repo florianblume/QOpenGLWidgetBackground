@@ -112,19 +112,20 @@ private:
     QVector<GLfloat> backgroundVertexData;
     QMatrix4x4 orthoMatrix;
 
-    ObjectModelRenerable objectModel = ObjectModelRenerable("/home/floretti/Documents/resources/tless/models_cad/obj_01.ply");
+    ObjectModelRenerable objectModel = ObjectModelRenerable("/home/floretti/git/flowerpower_nn/data/assets/tless/models_cad/obj_01.ply");
     QOpenGLVertexArrayObject m_objectVao;
     QOpenGLBuffer m_objectModelVertexVbo;
     QOpenGLBuffer m_objectModelNormalVbo;
     QOpenGLBuffer m_objectModelIndexVbo;
     QOpenGLShaderProgram *m_objectsProgram;
-    int m_projMatrixLoc;
-    int m_mvMatrixLoc;
+    int m_projectionMatrixLoc;
+    int m_viewMatrixLoc;
+    int m_modelMatrixLoc;
     int m_normalMatrixLoc;
     int m_lightPosLoc;
     QMatrix4x4 m_proj;
-    QMatrix4x4 m_camera;
-    QMatrix4x4 m_world;
+    QMatrix4x4 m_projectionMatrix;
+    QMatrix4x4 m_viewMatrix;
 };
 
 #endif
